@@ -11,6 +11,7 @@ $(document).ready(function () {
 
   firebase.initializeApp(config);
   var database = firebase.database();
+  var player;
 
   function playerSelected(player, displayArea) {
     var title = $("<h1>").text(player);
@@ -34,6 +35,7 @@ $(document).ready(function () {
     $("form").hide();
     localPlayers.forEach(function (current){
       var btn = $("<button>").text(current.player).addClass("playerSelect").attr("id", current.key);
+      console.log(current.key);
       $(".returningPlayers").append(btn);
     });
     var newPlyr = $("<button>").text("New Player").addClass("newPlayer");
@@ -47,27 +49,38 @@ $(document).ready(function () {
     event.preventDefault();
     var userName = $(".newUserName").val().trim();
     var userRef = database.ref().push();
-    userRef.update({name: userName, wins: 0, losses: 0, ties: 0});
+    userRef.update({name: userName, wins: 0, losses: 0, ties: 0, readyToPlay: true});
     console.log(userRef.key);
     var pastPlayers = JSON.parse(localStorage.getItem("rpsUWABootcampMES"));
     if (pastPlayers === null) {
       pastPlayers = [];
     }
     console.log(pastPlayers);
-    pastPlayers.push({key: userRef, player: userName});
+    pastPlayers.push({key: userRef.key, player: userName});
     localStorage.setItem("rpsUWABootcampMES", JSON.stringify(pastPlayers));
     console.log(localStorage.getItem("rpsUWABootcampMES"));
     playerSelected(userName, ".player1Area");
     $(this).parent().remove();
+    player = userRef.key;
+    console.log(player);
   });
+
   $(document.body).on("click", ".playerSelect", function (event) {
     playerSelected($(this).text(), ".player1Area");
+    player = $(this).attr("id");
+    console.log(player);
+    database.ref(player).update({readyToPlay: true});
     $(".returningPlayers").empty();
   });
 
   $(document.body).on("click", ".newPlayer", function (event) {
     $(".player1Area").append(submitNewPlayer(1));
     $(".returningPlayers").empty();
+  });
+
+  $(window).on("unload", function (){
+    database.ref(player).update({readyToPlay: false});
+
   });
 
 });
