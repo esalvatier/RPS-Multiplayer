@@ -14,9 +14,16 @@ $(document).ready(function () {
   var player;
 
   function playerSelected(player, displayArea) {
-    var title = $("<h1>").text(player);
-    $("form").hide();
-    $(displayArea).append(title);
+    console.log(player);
+    database.ref().on("value", function(snapshot) {
+      console.log(snapshot.val()[player]);
+      var title = $("<h1>").text(snapshot.val()[player].name);
+      $("form").hide();
+      var score = $("<div>").html("<p>Wins: "+ snapshot.val()[player].wins + "</p><p>Losses: " + snapshot.val()[player].losses + "</p><p>Ties: "+ snapshot.val()[player].ties + "</p>");
+      $(displayArea).append(title, score);
+    }, function(error){
+      console.log("Error: " + error.code);
+    });
   }
   
   function submitNewPlayer(playerNum) {
@@ -50,6 +57,7 @@ $(document).ready(function () {
     var userName = $(".newUserName").val().trim();
     var userRef = database.ref().push();
     userRef.update({name: userName, wins: 0, losses: 0, ties: 0, readyToPlay: true});
+    player = userRef.key;
     console.log(userRef.key);
     var pastPlayers = JSON.parse(localStorage.getItem("rpsUWABootcampMES"));
     if (pastPlayers === null) {
@@ -59,17 +67,15 @@ $(document).ready(function () {
     pastPlayers.push({key: userRef.key, player: userName});
     localStorage.setItem("rpsUWABootcampMES", JSON.stringify(pastPlayers));
     console.log(localStorage.getItem("rpsUWABootcampMES"));
-    playerSelected(userName, ".player1Area");
+    playerSelected(player, ".player1Area");
     $(this).parent().remove();
-    player = userRef.key;
     console.log(player);
   });
 
   $(document.body).on("click", ".playerSelect", function (event) {
-    playerSelected($(this).text(), ".player1Area");
     player = $(this).attr("id");
-    console.log(player);
     database.ref(player).update({readyToPlay: true});
+    playerSelected(player, ".player1Area")
     $(".returningPlayers").empty();
   });
 
@@ -80,7 +86,6 @@ $(document).ready(function () {
 
   $(window).on("unload", function (){
     database.ref(player).update({readyToPlay: false});
-
   });
 
 });
