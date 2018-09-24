@@ -46,6 +46,7 @@ $(document).ready(function () {
       console.log("Player is: " + player);
       if (opponent !== undefined) {
         playerSelected(opponent, 2);
+        database.ref(player).update({readyToPlay: false});
       }
     });
   });
