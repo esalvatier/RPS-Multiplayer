@@ -12,15 +12,15 @@ $(document).ready(function () {
   firebase.initializeApp(config);
   var database = firebase.database();
   var player;
+  var opponent;
 
-  function playerSelected(player, displayArea) {
-    console.log(player);
-    database.ref().on("value", function(snapshot) {
-      console.log(snapshot.val()[player]);
-      var title = $("<h1>").text(snapshot.val()[player].name);
+  function playerSelected(player, num) {
+    console.log("done once");
+    //console.log(player);
+    database.ref(player).on("value", function(snapshot) {
       $("form").hide();
-      var score = $("<div>").html("<p>Wins: "+ snapshot.val()[player].wins + "</p><p>Losses: " + snapshot.val()[player].losses + "</p><p>Ties: "+ snapshot.val()[player].ties + "</p>");
-      $(displayArea).append(title, score);
+      $("#player"+ num + "Name").text(snapshot.val().name);
+      $("#player"+ num +"Stats").html("<p>Wins: "+ snapshot.val().wins + "</p><p>Losses: " + snapshot.val().losses + "</p><p>Ties: "+ snapshot.val().ties + "</p>");
     }, function(error){
       console.log("Error: " + error.code);
     });
@@ -37,45 +37,62 @@ $(document).ready(function () {
     return newForm;
   }
 
+  database.ref().on("value", function(snapshot) {
+    snapshot.forEach(function(current){
+      if (current.val().readyToPlay && current.val().key !== player) {
+        opponent = current.key;
+      }
+      console.log("Opponent is: " + opponent);
+      console.log("Player is: " + player);
+      if (opponent !== undefined) {
+        playerSelected(opponent, 2);
+      }
+    });
+  });
+  
   if (localStorage.getItem("rpsUWABootcampMES") !== null) {
     var localPlayers = JSON.parse(localStorage.getItem("rpsUWABootcampMES"));
     $("form").hide();
     localPlayers.forEach(function (current){
       var btn = $("<button>").text(current.player).addClass("playerSelect").attr("id", current.key);
-      console.log(current.key);
+      //console.log(current.key);
       $(".returningPlayers").append(btn);
     });
     var newPlyr = $("<button>").text("New Player").addClass("newPlayer");
     $(".returningPlayers").append(newPlyr);
   } else {
     $(".player1Area").append(submitNewPlayer(1));
-    $(".player2Area").append(submitNewPlayer(2));
   }
 
   $(document.body).on("click", ".submitNewUser", function (event) {
     event.preventDefault();
     var userName = $(".newUserName").val().trim();
     var userRef = database.ref().push();
-    userRef.update({name: userName, wins: 0, losses: 0, ties: 0, readyToPlay: true});
+    userRef.update({key: userRef.key, name: userName, wins: 0, losses: 0, ties: 0, readyToPlay: true});
     player = userRef.key;
-    console.log(userRef.key);
+    //console.log(userRef.key);
     var pastPlayers = JSON.parse(localStorage.getItem("rpsUWABootcampMES"));
     if (pastPlayers === null) {
       pastPlayers = [];
     }
-    console.log(pastPlayers);
+    //console.log(pastPlayers);
     pastPlayers.push({key: userRef.key, player: userName});
     localStorage.setItem("rpsUWABootcampMES", JSON.stringify(pastPlayers));
-    console.log(localStorage.getItem("rpsUWABootcampMES"));
-    playerSelected(player, ".player1Area");
+    //console.log(localStorage.getItem("rpsUWABootcampMES"));
+    console.log("done thrice");
+    playerSelected(player, 1);
     $(this).parent().remove();
-    console.log(player);
+    database.ref(player).on("value", function(snapshot) {
+      console.log(snapshot);
+    });
+    //console.log(player);
   });
 
   $(document.body).on("click", ".playerSelect", function (event) {
+    console.log("done twice");
     player = $(this).attr("id");
     database.ref(player).update({readyToPlay: true});
-    playerSelected(player, ".player1Area")
+    playerSelected(player, 1);
     $(".returningPlayers").empty();
   });
 
@@ -85,7 +102,9 @@ $(document).ready(function () {
   });
 
   $(window).on("unload", function (){
-    database.ref(player).update({readyToPlay: false});
+    if (player !== undefined) {
+      database.ref(player).update({readyToPlay: false});
+    }
   });
 
 });
